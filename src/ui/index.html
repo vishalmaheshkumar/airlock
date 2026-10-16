@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Custom Browser</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="tabstrip">
+      <div id="tabs"></div>
+      <button id="newtab" title="New Tab">+</button>
+    </div>
+    <div id="toolbar">
+      <button id="back" title="Back">&#9664;</button>
+      <button id="forward" title="Forward">&#9654;</button>
+      <button id="reload" title="Reload">&#8635;</button>
+      <input id="address" type="text" placeholder="Search or enter address" autocomplete="off" spellcheck="false" />
+      <button id="pip" class="text-btn" title="Picture-in-Picture">PiP</button>
+    </div>
+    <script src="renderer.js"></script>
+  </body>
+</html>
