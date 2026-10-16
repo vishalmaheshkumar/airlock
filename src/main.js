@@ -192,7 +192,7 @@ function sendTabsUpdate() {
     activeTabId,
   });
   const active = tabs.find((t) => t.id === activeTabId);
-  if (mainWindow) mainWindow.setTitle(active && active.title ? `${active.title} — Custom Browser` : 'Custom Browser');
+  if (mainWindow) mainWindow.setTitle(active && active.title ? `${active.title} — Airlock` : 'Airlock');
 }
 
 function activeWebContents() {
@@ -332,7 +332,7 @@ function createMainWindow() {
     height: 860,
     minWidth: 640,
     minHeight: 420,
-    title: 'Custom Browser',
+    title: 'Airlock',
   });
 
   toolbarView = new WebContentsView({

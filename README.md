@@ -1,6 +1,6 @@
-# Custom Browser
+# Airlock
 
-A minimal, privacy-focused desktop browser built with Electron.
+**Nothing gets in, nothing gets out.** A sealed, privacy-focused desktop browser built with Electron.
 
 ## Features
 

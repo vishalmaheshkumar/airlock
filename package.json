@@ -1,5 +1,6 @@
 {
-  "name": "custom-browser",
+  "name": "airlock",
+  "productName": "Airlock",
   "version": "1.0.0",
   "description": "A minimal desktop browser with built-in ad/tracker blocking and automatic pop-up blocking.",
   "license": "MIT",
