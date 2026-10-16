@@ -29,3 +29,7 @@ src/
   preload.js    Bridge between the UI and the main process
   ui/           Toolbar, tab strip and new-tab page
 ```
+
+## License
+
+[MIT](LICENSE)
