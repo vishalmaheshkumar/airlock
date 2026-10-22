@@ -1,12 +1,32 @@
 {
-  "name": "airlock",
-  "productName": "Airlock",
-  "version": "1.0.0",
-  "description": "A minimal desktop browser with built-in ad/tracker blocking and automatic pop-up blocking.",
+  "name": "hush-browser",
+  "productName": "Hush",
+  "version": "0.2.0",
+  "description": "A quieter browser. Hush seals out ads, trackers, pop-ups, downloads and uploads so pages can't reach beyond themselves.",
   "license": "MIT",
   "main": "src/main.js",
+  "keywords": [
+    "browser",
+    "electron",
+    "privacy",
+    "adblock",
+    "tracker-blocker",
+    "no-downloads",
+    "sealed-browsing",
+    "minimal-browser"
+  ],
+  "homepage": "https://github.com/vishalmaheshkumar/hush#readme",
+  "bugs": {
+    "url": "https://github.com/vishalmaheshkumar/hush/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vishalmaheshkumar/hush.git"
+  },
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "smoke": "node test/smoke.js"
   },
   "dependencies": {
     "@ghostery/adblocker-electron": "^2.18.2",
