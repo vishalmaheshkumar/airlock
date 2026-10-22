@@ -7,6 +7,12 @@ const newTabBtn = document.getElementById('newtab');
 const pipBtn = document.getElementById('pip');
 const starBtn = document.getElementById('star');
 const brainBtn = document.getElementById('brain');
+const engineChip = document.getElementById('engine-chip');
+const engineChipLabel = document.getElementById('engine-chip-label');
+const engineMenu = document.getElementById('engine-menu');
+
+let searchEngines = [];
+let currentEngineId = null;
 
 let draggingTabId = null;
 
@@ -110,7 +116,96 @@ function render({ tabs, activeTabId, bookmarked }) {
   starBtn.disabled = starDisabled;
 }
 
-window.browserAPI.onTabsUpdated(render);
+function applyEngine(id) {
+  currentEngineId = id;
+  const engine = searchEngines.find((e) => e.id === id);
+  if (engine) {
+    engineChipLabel.textContent = engine.short;
+    engineChip.title = `Search engine: ${engine.name}`;
+  }
+  renderEngineMenu();
+}
+
+function renderEngineMenu() {
+  engineMenu.innerHTML = '';
+  for (const e of searchEngines) {
+    const item = document.createElement('button');
+    item.className = 'engine-menu-item' + (e.id === currentEngineId ? ' active' : '');
+    item.setAttribute('role', 'menuitemradio');
+    item.setAttribute('aria-checked', String(e.id === currentEngineId));
+
+    const mark = document.createElement('span');
+    mark.className = 'engine-mark';
+    mark.textContent = e.short;
+
+    const name = document.createElement('span');
+    name.textContent = e.name;
+
+    const check = document.createElement('span');
+    check.className = 'engine-check';
+    check.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+    item.appendChild(mark);
+    item.appendChild(name);
+    item.appendChild(check);
+    item.onclick = () => {
+      window.browserAPI.setSearchEngine(e.id);
+      applyEngine(e.id);
+      closeEngineMenu();
+    };
+    engineMenu.appendChild(item);
+  }
+}
+
+function openEngineMenu() {
+  engineMenu.hidden = false;
+  engineChip.setAttribute('aria-expanded', 'true');
+  // Delay so the click that opened it doesn't immediately close.
+  setTimeout(() => document.addEventListener('click', onOutsideClick), 0);
+  document.addEventListener('keydown', onMenuKey);
+}
+
+function closeEngineMenu() {
+  engineMenu.hidden = true;
+  engineChip.setAttribute('aria-expanded', 'false');
+  document.removeEventListener('click', onOutsideClick);
+  document.removeEventListener('keydown', onMenuKey);
+}
+
+function onOutsideClick(e) {
+  if (!engineMenu.contains(e.target) && e.target !== engineChip && !engineChip.contains(e.target)) {
+    closeEngineMenu();
+  }
+}
+
+function onMenuKey(e) {
+  if (e.key === 'Escape') closeEngineMenu();
+}
+
+engineChip.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (engineMenu.hidden) openEngineMenu();
+  else closeEngineMenu();
+});
+
+async function initEngineUI() {
+  try {
+    [searchEngines, currentEngineId] = await Promise.all([
+      window.browserAPI.listSearchEngines(),
+      window.browserAPI.getSearchEngine(),
+    ]);
+    applyEngine(currentEngineId);
+  } catch (err) {
+    console.error('[hush] engine init failed', err);
+  }
+}
+
+window.browserAPI.onTabsUpdated((data) => {
+  render(data);
+  if (data.searchEngine && data.searchEngine !== currentEngineId) {
+    applyEngine(data.searchEngine);
+  }
+});
 window.browserAPI.onFocusAddress(() => {
   addressEl.focus();
   addressEl.select();
@@ -138,3 +233,5 @@ brainBtn.addEventListener('click', () => window.browserAPI.toggleBrain());
 window.browserAPI.onBrainState?.((open) => {
   brainBtn.classList.toggle('on', !!open);
 });
+
+initEngineUI();

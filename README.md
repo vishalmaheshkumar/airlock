@@ -35,7 +35,7 @@ Hush doesn't ship a toggle to turn these off. If you need to upload or download,
 ## Features
 
 - **Tabs** with drag-to-reorder, loading spinner, and an audio indicator that pulses in time with sound playing on the page (click to mute)
-- **Address bar** that routes URLs to the site and plain text to DuckDuckGo
+- **Address bar** that routes URLs to the site and plain text to your chosen search engine (click the chip on the bar's left tip to switch between DuckDuckGo, Startpage, Brave, Qwant, Ecosia, Mojeek, Google, Bing — privacy-first ones listed first)
 - **Bookmarks** (⌘D) — appear on the new-tab page
 - **History** (⌘Y) — a quiet list, local-only, 1000 most-recent entries
 - **Find on page** (⌘F) with match count and prev/next

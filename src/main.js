@@ -2,7 +2,7 @@ const { app, BaseWindow, WebContentsView, session, Menu, ipcMain, clipboard, nat
 const path = require('path');
 const fs = require('fs');
 const { ElectronBlocker } = require('@ghostery/adblocker-electron');
-const { normalizeUrl, displayHost } = require('./url');
+const { normalizeUrl, displayHost, SEARCH_ENGINES, DEFAULT_ENGINE_ID, getEngine } = require('./url');
 const { createStore } = require('./storage/store');
 
 const TOOLBAR_HEIGHT = 84;
@@ -44,7 +44,12 @@ async function setupAdblocker() {
 
 function setupStore() {
   const storePath = path.join(app.getPath('userData'), 'hush-store.json');
-  store = createStore(storePath, { bookmarks: [], history: [] });
+  store = createStore(storePath, { bookmarks: [], history: [], searchEngine: DEFAULT_ENGINE_ID });
+}
+
+function currentEngineId() {
+  const stored = store?.get('searchEngine');
+  return getEngine(stored).id;
 }
 
 // No website is allowed to save a file to disk: cancel every download outright.
@@ -209,6 +214,7 @@ function sendTabsUpdate() {
     })),
     activeTabId,
     bookmarked: active ? isBookmarked(active.url) : false,
+    searchEngine: currentEngineId(),
   });
   if (mainWindow) mainWindow.setTitle(active && active.title ? `${active.title} — Hush` : 'Hush');
 }
@@ -469,7 +475,14 @@ function registerIpcHandlers() {
   ipcMain.on('nav:reorder-tab', (_e, { fromId, toId }) => reorderTab(fromId, toId));
   ipcMain.on('nav:navigate', (_e, input) => {
     const wc = activeWebContents();
-    if (wc) wc.loadURL(normalizeUrl(input, NEW_TAB_URL));
+    if (wc) wc.loadURL(normalizeUrl(input, NEW_TAB_URL, currentEngineId()));
+  });
+  ipcMain.handle('search-engine:list', () => SEARCH_ENGINES);
+  ipcMain.handle('search-engine:get', () => currentEngineId());
+  ipcMain.on('search-engine:set', (_e, id) => {
+    const picked = getEngine(id);
+    store.set('searchEngine', picked.id);
+    sendTabsUpdate();
   });
   ipcMain.on('nav:back', () => {
     const wc = activeWebContents();

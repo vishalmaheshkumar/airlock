@@ -9,6 +9,7 @@ All notable changes to Hush. Follows [Keep a Changelog](https://keepachangelog.c
 - Tab switching uses `view.setVisible` instead of zero bounds. Fixes a glitch where, with Picture-in-Picture running, switching tabs left the source page's layers visible under the active tab.
 
 ### Added
+- **Search engine picker** — a small chip on the left tip of the address bar opens a dropdown of 8 supported engines (DuckDuckGo, Startpage, Brave, Qwant, Ecosia, Mojeek, Google, Bing). The choice persists via the local JSON store and applies to every tab.
 - **Brain** — a local small-language-model chat panel docked next to the PiP button (⌘⇧L). Pick from 10 curated models (SmolLM2 135M → Phi-3.5 Mini 3.8B); first use downloads weights to IndexedDB and from then on runs entirely on-device through WebGPU via `@mlc-ai/web-llm`. Streaming tokens, system-prompt / temperature / max-tokens controls, token/sec stat.
 - **Audio indicator** on each tab: three bars that pulse while the page is making sound; click to mute (click again to unmute). The animation is suppressed under `prefers-reduced-motion`.
 - **Native app packaging** via electron-builder: `npm run dist:mac|win|linux` builds `.dmg` / `.exe` / `.AppImage`. Config lives in `package.json`, icon at `build/icon.png`.

@@ -15,6 +15,10 @@ contextBridge.exposeInMainWorld('browserAPI', {
   toggleBrain: () => ipcRenderer.send('brain:toggle'),
   onBrainState: (cb) => ipcRenderer.on('brain:state', (_e, open) => cb(open)),
 
+  listSearchEngines: () => ipcRenderer.invoke('search-engine:list'),
+  getSearchEngine: () => ipcRenderer.invoke('search-engine:get'),
+  setSearchEngine: (id) => ipcRenderer.send('search-engine:set', id),
+
   toggleBookmark: () => ipcRenderer.send('bookmark:toggle'),
   listBookmarks: () => ipcRenderer.invoke('bookmark:list'),
   removeBookmark: (url) => ipcRenderer.send('bookmark:remove', url),

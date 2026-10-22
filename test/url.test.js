@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { looksLikeUrl, normalizeUrl, displayHost } = require('../src/url');
+const { looksLikeUrl, normalizeUrl, displayHost, searchUrl, SEARCH_ENGINES, getEngine } = require('../src/url');
 
 const NEW_TAB = 'file:///newtab';
 
@@ -47,11 +47,45 @@ test('normalizeUrl uses http for localhost', () => {
   assert.equal(normalizeUrl('localhost:3000', NEW_TAB), 'http://localhost:3000');
 });
 
-test('normalizeUrl routes queries to DuckDuckGo', () => {
+test('normalizeUrl routes queries to DuckDuckGo by default', () => {
   assert.equal(
     normalizeUrl('how to tie a knot', NEW_TAB),
     'https://duckduckgo.com/?q=how%20to%20tie%20a%20knot',
   );
+});
+
+test('normalizeUrl routes to the selected engine', () => {
+  assert.equal(
+    normalizeUrl('cats', NEW_TAB, 'google'),
+    'https://www.google.com/search?q=cats',
+  );
+  assert.equal(
+    normalizeUrl('cats', NEW_TAB, 'brave'),
+    'https://search.brave.com/search?q=cats',
+  );
+  assert.equal(
+    normalizeUrl('cats', NEW_TAB, 'mojeek'),
+    'https://www.mojeek.com/search?q=cats',
+  );
+});
+
+test('normalizeUrl falls back to default on unknown engine id', () => {
+  assert.equal(
+    normalizeUrl('cats', NEW_TAB, 'notarealengine'),
+    'https://duckduckgo.com/?q=cats',
+  );
+});
+
+test('SEARCH_ENGINES exposes the full catalog', () => {
+  assert.ok(SEARCH_ENGINES.length >= 8);
+  for (const e of SEARCH_ENGINES) {
+    assert.ok(e.id && e.name && e.short && e.url.includes('%s'));
+  }
+});
+
+test('getEngine returns the match or falls back to default', () => {
+  assert.equal(getEngine('google').id, 'google');
+  assert.equal(getEngine('nope').id, 'duckduckgo');
 });
 
 test('normalizeUrl falls back for empty input', () => {
