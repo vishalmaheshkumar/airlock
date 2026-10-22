@@ -1,3 +1,58 @@
+:root {
+  /* Hush brand: reading-room calm. Sage accent on ink-dark or paper-light. */
+  --bg: #0e1116;
+  --bg-elev: #171a21;
+  --bg-elev-2: #20242d;
+  --bg-input: #0a0c10;
+  --border: #262a33;
+  --fg: #e8e6df;
+  --fg-muted: #9ea099;
+  --fg-dim: #6a6c66;
+  --accent: #88b19f;
+  --accent-strong: #6b9080;
+  --tab-active: #20242d;
+  --tab-hover: rgba(255, 255, 255, 0.05);
+  --danger: #d98a7a;
+  --radius: 8px;
+  --radius-tab: 10px;
+  --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Charter", Georgia, "Times New Roman", serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f3ec;
+    --bg-elev: #ffffff;
+    --bg-elev-2: #ece7da;
+    --bg-input: #ffffff;
+    --border: #ddd6c5;
+    --fg: #1a1c1a;
+    --fg-muted: #5a5c56;
+    --fg-dim: #8a8c85;
+    --accent: #4a7566;
+    --accent-strong: #335849;
+    --tab-active: #ffffff;
+    --tab-hover: rgba(0, 0, 0, 0.03);
+    --danger: #a84a3a;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e1116;
+  --bg-elev: #171a21;
+  --bg-elev-2: #20242d;
+  --bg-input: #0a0c10;
+  --border: #262a33;
+  --fg: #e8e6df;
+  --fg-muted: #9ea099;
+  --fg-dim: #6a6c66;
+  --accent: #88b19f;
+  --accent-strong: #6b9080;
+  --tab-active: #20242d;
+  --tab-hover: rgba(255, 255, 255, 0.05);
+  --danger: #d98a7a;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -8,19 +63,36 @@ body {
   padding: 0;
   height: 100%;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  background: #202124;
-  color: #e8eaed;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--fg);
   user-select: none;
+  -webkit-font-smoothing: antialiased;
 }
 
 #tabstrip {
   height: 40px;
   display: flex;
   align-items: center;
-  background: #202124;
-  padding: 6px 6px 0 8px;
+  background: var(--bg);
+  padding: 6px 6px 0 10px;
   gap: 4px;
+}
+
+#brand {
+  display: flex;
+  align-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 4px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+#brand svg {
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
 #tabs {
@@ -28,27 +100,81 @@ body {
   display: flex;
   gap: 4px;
   overflow-x: auto;
+  overflow-y: hidden;
   height: 100%;
+  scrollbar-width: none;
+}
+
+#tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-width: 120px;
   max-width: 220px;
   padding: 0 10px;
   height: 32px;
-  border-radius: 8px 8px 0 0;
-  background: #35363a;
-  color: #bdc1c6;
-  cursor: pointer;
+  border-radius: var(--radius-tab) var(--radius-tab) 0 0;
+  background: var(--bg-elev);
+  color: var(--fg-muted);
+  cursor: default;
   white-space: nowrap;
+  transition: background 120ms ease;
+  position: relative;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+
+.tab:hover {
+  background: var(--bg-elev-2);
 }
 
 .tab.active {
-  background: #4a4d51;
-  color: #ffffff;
+  background: var(--tab-active);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.tab.dragging {
+  opacity: 0.5;
+}
+
+.tab.drag-over::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+.tab-favicon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-dim);
+}
+
+.tab-favicon.loading::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--fg-dim);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .tab-title {
@@ -57,17 +183,20 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12.5px;
+  letter-spacing: 0.005em;
 }
 
 .tab-close {
   font-size: 14px;
   line-height: 1;
-  padding: 2px 4px;
+  padding: 2px 5px;
   border-radius: 4px;
+  color: var(--fg-muted);
 }
 
 .tab-close:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(128, 128, 128, 0.25);
+  color: var(--fg);
 }
 
 #newtab {
@@ -76,37 +205,64 @@ body {
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: #bdc1c6;
-  font-size: 16px;
+  color: var(--fg-muted);
+  font-size: 18px;
+  line-height: 1;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #newtab:hover {
-  background: #35363a;
+  background: var(--bg-elev-2);
+  color: var(--fg);
 }
 
 #toolbar {
   height: 44px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 8px;
-  background: #35363a;
+  gap: 4px;
+  padding: 0 10px;
+  background: var(--bg-elev);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 #toolbar button {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
-  color: #e8eaed;
-  font-size: 13px;
+  color: var(--fg);
+  font-size: 14px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 100ms ease;
 }
 
 #toolbar button:hover {
-  background: #4a4d51;
+  background: var(--bg-elev-2);
+}
+
+#toolbar button:disabled {
+  color: var(--fg-dim);
+  cursor: default;
+}
+
+#toolbar button:disabled:hover {
+  background: transparent;
+}
+
+#toolbar button svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 #toolbar button.text-btn {
@@ -114,18 +270,87 @@ body {
   padding: 0 10px;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+#toolbar button.text-btn:hover {
+  color: var(--fg);
+}
+
+#star.on {
+  color: var(--accent);
 }
 
 #address {
   flex: 1;
-  height: 30px;
-  border-radius: 15px;
-  border: none;
+  height: 32px;
+  border-radius: 16px;
+  border: 1px solid transparent;
   outline: none;
   padding: 0 14px;
-  background: #202124;
-  color: #e8eaed;
+  background: var(--bg-input);
+  color: var(--fg);
   font-size: 13px;
   user-select: text;
+  margin: 0 6px;
+  transition: border-color 120ms ease;
+}
+
+#address:focus {
+  border-color: var(--accent);
+}
+
+/* Find bar (loaded in its own WebContentsView, so these styles live here too) */
+body.find {
+  background: var(--bg-elev);
+}
+
+.find-bar {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.find-bar input {
+  flex: 1;
+  height: 30px;
+  border-radius: 15px;
+  border: 1px solid transparent;
+  outline: none;
+  padding: 0 12px;
+  background: var(--bg-input);
+  color: var(--fg);
+  font-size: 13px;
+  user-select: text;
+}
+
+.find-bar input:focus {
+  border-color: var(--accent);
+}
+
+.find-bar .count {
+  font-size: 12px;
+  color: var(--fg-muted);
+  min-width: 48px;
+  text-align: center;
+  user-select: none;
+}
+
+.find-bar button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.find-bar button:hover {
+  background: var(--bg-elev-2);
 }

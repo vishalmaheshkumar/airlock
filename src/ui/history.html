@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hush — History</title>
+    <link rel="stylesheet" href="internal.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand-row">
+        <span class="mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="4"  y1="7"  x2="4"  y2="17"/>
+            <line x1="8.5" y1="9" x2="8.5" y2="15"/>
+            <line x1="13" y1="11" x2="13" y2="13"/>
+            <line x1="17" y1="12" x2="21" y2="12"/>
+          </svg>
+        </span>
+        <h1>History</h1>
+      </div>
+      <div class="header-actions">
+        <input id="filter" placeholder="Filter history" autocomplete="off" spellcheck="false" />
+        <button id="clear" class="danger">Clear all</button>
+      </div>
+    </header>
+    <main>
+      <ul id="list" class="list"></ul>
+      <p id="empty" class="empty" hidden>No history recorded yet.</p>
+    </main>
+    <script src="internal.js" data-page="history"></script>
+  </body>
+</html>

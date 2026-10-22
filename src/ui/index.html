@@ -2,19 +2,37 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Airlock</title>
+    <title>Hush</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div id="tabstrip">
+      <div id="brand" title="Hush">
+        <!-- Hush mark: four bars descending into a flat line = sound going quiet -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="4"  y1="7"  x2="4"  y2="17"/>
+          <line x1="8.5" y1="9" x2="8.5" y2="15"/>
+          <line x1="13" y1="11" x2="13" y2="13"/>
+          <line x1="17" y1="12" x2="21" y2="12"/>
+        </svg>
+      </div>
       <div id="tabs"></div>
-      <button id="newtab" title="New Tab">+</button>
+      <button id="newtab" title="New Tab (⌘T)">+</button>
     </div>
     <div id="toolbar">
-      <button id="back" title="Back">&#9664;</button>
-      <button id="forward" title="Forward">&#9654;</button>
-      <button id="reload" title="Reload">&#8635;</button>
+      <button id="back" title="Back (⌘[)" aria-label="Back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button id="forward" title="Forward (⌘])" aria-label="Forward">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg>
+      </button>
+      <button id="reload" title="Reload (⌘R)" aria-label="Reload">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15A9 9 0 1 1 18 5.3L23 10"/></svg>
+      </button>
       <input id="address" type="text" placeholder="Search or enter address" autocomplete="off" spellcheck="false" />
+      <button id="star" title="Bookmark This Page (⌘D)" aria-label="Bookmark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15 9 22 9.3 17 14 18.5 21 12 17.3 5.5 21 7 14 2 9.3 9 9 12 2"/></svg>
+      </button>
       <button id="pip" class="text-btn" title="Picture-in-Picture">PiP</button>
     </div>
     <script src="renderer.js"></script>
