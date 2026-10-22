@@ -6,8 +6,12 @@ All notable changes to Hush. Follows [Keep a Changelog](https://keepachangelog.c
 
 ### Changed
 - Project renamed from **Airlock** to **Hush**. New mark (four bars descending into a flat line) and sage-on-ink palette.
+- Tab switching uses `view.setVisible` instead of zero bounds. Fixes a glitch where, with Picture-in-Picture running, switching tabs left the source page's layers visible under the active tab.
 
 ### Added
+- **Audio indicator** on each tab: three bars that pulse while the page is making sound; click to mute (click again to unmute). The animation is suppressed under `prefers-reduced-motion`.
+- **Native app packaging** via electron-builder: `npm run dist:mac|win|linux` builds `.dmg` / `.exe` / `.AppImage`. Config lives in `package.json`, icon at `build/icon.png`.
+- **Release workflow** (`.github/workflows/release.yml`): pushing a `v*` tag builds all three OSes and uploads them to a GitHub Release.
 - **Bookmarks** (`⌘D`) with a dedicated page (`⌘⇧B`) and a grid on the new-tab page.
 - **History** (`⌘Y`) — last 1000 entries, stored locally, filterable, with "Clear all".
 - **Find on page** (`⌘F`) with match count and prev/next navigation.

@@ -6,6 +6,7 @@
 
 **A quieter browser.** Hush seals pages off from the rest of the web — and from your machine. Ads, trackers, pop-ups, downloads and uploads are blocked. There is no telemetry, no account, no sync, no "experiments" page. Just a window.
 
+[![Download](https://img.shields.io/github/v/release/vishalmaheshkumar/hush?include_prereleases&label=download&color=6b9080)](https://github.com/vishalmaheshkumar/hush/releases/latest)
 [![CI](https://github.com/vishalmaheshkumar/hush/actions/workflows/ci.yml/badge.svg)](https://github.com/vishalmaheshkumar/hush/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6b9080.svg)](LICENSE)
 [![Electron](https://img.shields.io/badge/electron-44-6b9080.svg)](https://www.electronjs.org/)
@@ -33,7 +34,7 @@ Hush doesn't ship a toggle to turn these off. If you need to upload or download,
 
 ## Features
 
-- **Tabs** with drag-to-reorder, loading spinner, favicon letter
+- **Tabs** with drag-to-reorder, loading spinner, and an audio indicator that pulses in time with sound playing on the page (click to mute)
 - **Address bar** that routes URLs to the site and plain text to DuckDuckGo
 - **Bookmarks** (⌘D) — appear on the new-tab page
 - **History** (⌘Y) — a quiet list, local-only, 1000 most-recent entries
@@ -60,7 +61,21 @@ Hush doesn't ship a toggle to turn these off. If you need to upload or download,
 | Show bookmarks | ⌘⇧B | Ctrl Shift B |
 | Show history | ⌘Y | Ctrl Y |
 
-## Install & run
+## Download
+
+Grab the latest build from the **[Releases page](https://github.com/vishalmaheshkumar/hush/releases/latest)**.
+
+| OS | File |
+|---|---|
+| **macOS** (Apple Silicon or Intel) | `Hush-*-arm64.dmg` / `Hush-*.dmg` |
+| **Windows** 10/11 | `Hush Setup *.exe` (installer) or `Hush *.exe` (portable) |
+| **Linux** | `Hush-*.AppImage` or `hush_*.deb` |
+
+Releases are self-signed. On macOS, right-click `Hush.app` → **Open** the first time (or run `xattr -dr com.apple.quarantine /Applications/Hush.app`). On Windows, click **More info → Run anyway** in the SmartScreen dialog. On Linux, `chmod +x Hush-*.AppImage` and double-click.
+
+The first launch downloads the Ghostery adblocker filter lists; after that everything is cached in your user-data directory. Nothing else is sent anywhere.
+
+## Build from source
 
 Requires **Node.js ≥ 20**.
 
@@ -68,10 +83,11 @@ Requires **Node.js ≥ 20**.
 git clone https://github.com/vishalmaheshkumar/hush.git
 cd hush
 npm install
-npm start
+npm start           # run from source
+npm run dist:mac    # build a .dmg into out/
+npm run dist:win    # build a Windows installer
+npm run dist:linux  # build an AppImage + .deb
 ```
-
-The first launch downloads the adblocker filter lists; after that it reads from a cached binary in your Electron user-data directory. Nothing is sent anywhere.
 
 ## Project layout
 
