@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Hush app icon">
+  <title>Hush</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#171a21"/>
+      <stop offset="1" stop-color="#0b0d12"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="230" ry="230" fill="url(#bg)"/>
+  <!-- Soft inner shadow for depth -->
+  <rect x="8" y="8" width="1008" height="1008" rx="226" ry="226" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="2"/>
+  <!-- Mark: four bars descending into a flat line -->
+  <g fill="none" stroke="#88b19f" stroke-width="68" stroke-linecap="round">
+    <line x1="276" y1="340" x2="276" y2="684"/>
+    <line x1="434" y1="408" x2="434" y2="616"/>
+    <line x1="592" y1="482" x2="592" y2="542"/>
+    <line x1="690" y1="512" x2="860" y2="512"/>
+  </g>
+</svg>
