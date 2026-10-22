@@ -199,6 +199,46 @@ body {
   color: var(--fg);
 }
 
+/* Audio indicator: three bars that pulse while audio is playing. */
+.tab-audio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.tab-audio:hover {
+  background: rgba(128, 128, 128, 0.2);
+}
+
+.tab-audio.muted {
+  color: var(--fg-dim);
+}
+
+.tab-audio.live .w1 { animation: hush-wave 1s ease-in-out infinite; transform-origin: center; }
+.tab-audio.live .w2 { animation: hush-wave 1s ease-in-out infinite 0.15s; transform-origin: center; }
+.tab-audio.live .w3 { animation: hush-wave 1s ease-in-out infinite 0.3s; transform-origin: center; }
+
+@keyframes hush-wave {
+  0%, 100% { transform: scaleY(0.55); }
+  50% { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-audio.live .w1,
+  .tab-audio.live .w2,
+  .tab-audio.live .w3 { animation: none; }
+}
+
 #newtab {
   width: 28px;
   height: 28px;

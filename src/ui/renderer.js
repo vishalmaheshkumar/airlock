@@ -59,6 +59,34 @@ function render({ tabs, activeTabId, bookmarked }) {
     title.textContent = tab.loading && !tab.title ? 'Loading…' : (tab.title || tab.url || 'New Tab');
     el.appendChild(title);
 
+    if (tab.audible || tab.muted) {
+      const audio = document.createElement('button');
+      audio.className = 'tab-audio' + (tab.muted ? ' muted' : '') + (tab.audible && !tab.muted ? ' live' : '');
+      audio.title = tab.muted ? 'Unmute tab' : 'Mute tab';
+      audio.setAttribute('aria-label', audio.title);
+      if (tab.muted) {
+        audio.innerHTML =
+          '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">' +
+          '<line x1="2" y1="4" x2="2" y2="8"/>' +
+          '<line x1="5" y1="4" x2="5" y2="8"/>' +
+          '<line x1="8" y1="4" x2="8" y2="8"/>' +
+          '<line x1="1" y1="1" x2="11" y2="11" stroke-width="1.3"/>' +
+          '</svg>';
+      } else {
+        audio.innerHTML =
+          '<svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">' +
+          '<line class="w1" x1="2" y1="4" x2="2" y2="8"/>' +
+          '<line class="w2" x1="5" y1="3" x2="5" y2="9"/>' +
+          '<line class="w3" x1="8" y1="5" x2="8" y2="7"/>' +
+          '</svg>';
+      }
+      audio.onclick = (e) => {
+        e.stopPropagation();
+        window.browserAPI.toggleMute(tab.id);
+      };
+      el.appendChild(audio);
+    }
+
     const close = document.createElement('span');
     close.className = 'tab-close';
     close.textContent = '×';

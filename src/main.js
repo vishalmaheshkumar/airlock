@@ -193,7 +193,10 @@ function sendTabsUpdate() {
   if (!toolbarView) return;
   const active = tabs.find((t) => t.id === activeTabId);
   toolbarView.webContents.send('tabs-updated', {
-    tabs: tabs.map((t) => ({ id: t.id, title: t.title, url: t.url, loading: t.loading })),
+    tabs: tabs.map((t) => ({
+      id: t.id, title: t.title, url: t.url, loading: t.loading,
+      audible: t.audible, muted: t.muted,
+    })),
     activeTabId,
     bookmarked: active ? isBookmarked(active.url) : false,
   });
@@ -237,7 +240,7 @@ function createTab(url) {
   });
 
   const id = nextTabId++;
-  const tab = { id, view, title: 'New Tab', url: url || NEW_TAB_URL, loading: true, fullscreen: false, zoom: 0 };
+  const tab = { id, view, title: 'New Tab', url: url || NEW_TAB_URL, loading: true, fullscreen: false, zoom: 0, audible: false, muted: false };
   tabs.push(tab);
 
   const wc = view.webContents;
@@ -287,6 +290,10 @@ function createTab(url) {
     wc.executeJavaScript(PAGE_ENHANCEMENTS_SCRIPT).catch(() => {});
     wc.setZoomLevel(tab.zoom);
   });
+  wc.on('audio-state-changed', (event) => {
+    tab.audible = !!event.audible;
+    sendTabsUpdate();
+  });
   wc.on('found-in-page', (_e, result) => {
     if (!findBarView) return;
     findBarView.webContents.send('find:result', {
@@ -318,9 +325,10 @@ function switchTab(id) {
   if (!tabs.some((t) => t.id === id)) return;
   activeTabId = id;
   hideFindBar();
-  for (const t of tabs) {
-    if (t.id !== id) t.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
-  }
+  // Use setVisible, not zero bounds. Zero-size views still participate in
+  // compositing: on inactive PiP-source tabs, we were seeing the page bleed
+  // through under the active tab after a switch.
+  for (const t of tabs) t.view.setVisible(t.id === id);
   layout();
   sendTabsUpdate();
 }
@@ -435,6 +443,13 @@ function registerIpcHandlers() {
   ipcMain.on('nav:stop', () => activeWebContents()?.stop());
   ipcMain.on('nav:pip', () => {
     activeWebContents()?.executeJavaScript(PIP_SCRIPT, true).catch(() => {});
+  });
+  ipcMain.on('tab:toggle-mute', (_e, id) => {
+    const tab = tabs.find((t) => t.id === id);
+    if (!tab) return;
+    tab.muted = !tab.muted;
+    tab.view.webContents.setAudioMuted(tab.muted);
+    sendTabsUpdate();
   });
 
   ipcMain.on('bookmark:toggle', toggleBookmark);
