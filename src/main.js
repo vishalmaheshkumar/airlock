@@ -484,6 +484,23 @@ function registerIpcHandlers() {
     store.set('searchEngine', picked.id);
     sendTabsUpdate();
   });
+  ipcMain.on('search-engine:show-menu', (_e, rect) => {
+    if (!mainWindow) return;
+    const activeId = currentEngineId();
+    const template = SEARCH_ENGINES.map((eng) => ({
+      label: `${eng.name}  (${eng.short})`,
+      type: 'checkbox',
+      checked: eng.id === activeId,
+      click: () => {
+        store.set('searchEngine', eng.id);
+        sendTabsUpdate();
+      },
+    }));
+    const menu = Menu.buildFromTemplate(template);
+    const x = rect && Number.isFinite(rect.x) ? Math.round(rect.x) : undefined;
+    const y = rect && Number.isFinite(rect.y) ? Math.round(rect.y) : undefined;
+    menu.popup({ window: mainWindow, ...(x != null ? { x, y } : {}) });
+  });
   ipcMain.on('nav:back', () => {
     const wc = activeWebContents();
     if (wc && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();

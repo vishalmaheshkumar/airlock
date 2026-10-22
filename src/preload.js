@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('browserAPI', {
   listSearchEngines: () => ipcRenderer.invoke('search-engine:list'),
   getSearchEngine: () => ipcRenderer.invoke('search-engine:get'),
   setSearchEngine: (id) => ipcRenderer.send('search-engine:set', id),
+  showEngineMenu: (rect) => ipcRenderer.send('search-engine:show-menu', rect),
 
   toggleBookmark: () => ipcRenderer.send('bookmark:toggle'),
   listBookmarks: () => ipcRenderer.invoke('bookmark:list'),

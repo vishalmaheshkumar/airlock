@@ -9,7 +9,6 @@ const starBtn = document.getElementById('star');
 const brainBtn = document.getElementById('brain');
 const engineChip = document.getElementById('engine-chip');
 const engineChipLabel = document.getElementById('engine-chip-label');
-const engineMenu = document.getElementById('engine-menu');
 
 let searchEngines = [];
 let currentEngineId = null;
@@ -123,78 +122,24 @@ function applyEngine(id) {
     engineChipLabel.textContent = engine.short;
     engineChip.title = `Search engine: ${engine.name}`;
   }
-  renderEngineMenu();
 }
 
-function renderEngineMenu() {
-  engineMenu.innerHTML = '';
-  for (const e of searchEngines) {
-    const item = document.createElement('button');
-    item.className = 'engine-menu-item' + (e.id === currentEngineId ? ' active' : '');
-    item.setAttribute('role', 'menuitemradio');
-    item.setAttribute('aria-checked', String(e.id === currentEngineId));
-
-    const mark = document.createElement('span');
-    mark.className = 'engine-mark';
-    mark.textContent = e.short;
-
-    const name = document.createElement('span');
-    name.textContent = e.name;
-
-    const check = document.createElement('span');
-    check.className = 'engine-check';
-    check.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-
-    item.appendChild(mark);
-    item.appendChild(name);
-    item.appendChild(check);
-    item.onclick = () => {
-      window.browserAPI.setSearchEngine(e.id);
-      applyEngine(e.id);
-      closeEngineMenu();
-    };
-    engineMenu.appendChild(item);
-  }
-}
-
-function openEngineMenu() {
-  engineMenu.hidden = false;
-  engineChip.setAttribute('aria-expanded', 'true');
-  // Delay so the click that opened it doesn't immediately close.
-  setTimeout(() => document.addEventListener('click', onOutsideClick), 0);
-  document.addEventListener('keydown', onMenuKey);
-}
-
-function closeEngineMenu() {
-  engineMenu.hidden = true;
-  engineChip.setAttribute('aria-expanded', 'false');
-  document.removeEventListener('click', onOutsideClick);
-  document.removeEventListener('keydown', onMenuKey);
-}
-
-function onOutsideClick(e) {
-  if (!engineMenu.contains(e.target) && e.target !== engineChip && !engineChip.contains(e.target)) {
-    closeEngineMenu();
-  }
-}
-
-function onMenuKey(e) {
-  if (e.key === 'Escape') closeEngineMenu();
-}
-
-engineChip.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (engineMenu.hidden) openEngineMenu();
-  else closeEngineMenu();
+// The dropdown is a native Electron popup menu, not an HTML element. HTML
+// menus from the toolbar WebContentsView get clipped by its height — the
+// native menu renders at the OS level and is keyboard-navigable for free.
+engineChip.addEventListener('click', () => {
+  const r = engineChip.getBoundingClientRect();
+  window.browserAPI.showEngineMenu({ x: Math.round(r.left), y: Math.round(r.bottom + 2) });
 });
 
 async function initEngineUI() {
   try {
-    [searchEngines, currentEngineId] = await Promise.all([
+    const [list, active] = await Promise.all([
       window.browserAPI.listSearchEngines(),
       window.browserAPI.getSearchEngine(),
     ]);
-    applyEngine(currentEngineId);
+    searchEngines = list || [];
+    applyEngine(active);
   } catch (err) {
     console.error('[hush] engine init failed', err);
   }
