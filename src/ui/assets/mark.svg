@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Hush mark">
+  <title>Hush</title>
+  <rect width="48" height="48" rx="12" fill="#0e1116"/>
+  <g fill="none" stroke="#6b9080" stroke-width="3" stroke-linecap="round">
+    <line x1="12" y1="16" x2="12" y2="32"/>
+    <line x1="19" y1="19" x2="19" y2="29"/>
+    <line x1="26" y1="22" x2="26" y2="26"/>
+    <line x1="32" y1="24" x2="38" y2="24"/>
+  </g>
+</svg>

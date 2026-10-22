@@ -1,39 +1,30 @@
-const { app, BaseWindow, WebContentsView, session, Menu, ipcMain, clipboard } = require('electron');
+const { app, BaseWindow, WebContentsView, session, Menu, ipcMain, clipboard, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { ElectronBlocker } = require('@ghostery/adblocker-electron');
+const { normalizeUrl, displayHost, SEARCH_ENGINES, DEFAULT_ENGINE_ID, getEngine } = require('./url');
+const { createStore } = require('./storage/store');
 
 const TOOLBAR_HEIGHT = 84;
+const FIND_BAR_HEIGHT = 44;
+const BRAIN_WIDTH = 380;
 const NEW_TAB_URL = `file://${path.join(__dirname, 'ui', 'newtab.html')}`;
-const searchUrl = (q) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`;
+const HISTORY_LIMIT = 1000;
 
 let mainWindow = null;
 let toolbarView = null;
 let toolbarAttached = false;
+let findBarView = null;
+let findBarVisible = false;
+let brainView = null;
+let brainVisible = false;
 let blocker = null;
+let store = null;
 
-/** @type {{ id: number, view: WebContentsView, title: string, url: string, loading: boolean }[]} */
+/** @type {{ id: number, view: WebContentsView, title: string, url: string, loading: boolean, fullscreen: boolean, zoom: number }[]} */
 let tabs = [];
 let activeTabId = null;
 let nextTabId = 1;
-
-function looksLikeUrl(input) {
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(input)) return true;
-  if (/^localhost(:\d+)?(\/.*)?$/.test(input)) return true;
-  if (!/\s/.test(input) && /^[^/]+\.[a-zA-Z]{2,}(\/.*)?$/.test(input)) return true;
-  return false;
-}
-
-function normalizeUrl(rawInput) {
-  const input = (rawInput || '').trim();
-  if (!input) return NEW_TAB_URL;
-  if (looksLikeUrl(input)) {
-    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(input)) return input;
-    if (/^localhost(:\d+)?(\/.*)?$/.test(input)) return `http://${input}`;
-    return `https://${input}`;
-  }
-  return searchUrl(input);
-}
 
 async function setupAdblocker() {
   const cachePath = path.join(app.getPath('userData'), 'adblocker-engine.bin');
@@ -49,6 +40,16 @@ async function setupAdblocker() {
     console.error('[adblocker] failed to initialize, continuing without it:', err);
     blocker = null;
   }
+}
+
+function setupStore() {
+  const storePath = path.join(app.getPath('userData'), 'hush-store.json');
+  store = createStore(storePath, { bookmarks: [], history: [], searchEngine: DEFAULT_ENGINE_ID });
+}
+
+function currentEngineId() {
+  const stored = store?.get('searchEngine');
+  return getEngine(stored).id;
 }
 
 // No website is allowed to save a file to disk: cancel every download outright.
@@ -141,8 +142,7 @@ const MEDIA_SHORTCUTS_SCRIPT = `(() => {
 
 const PAGE_ENHANCEMENTS_SCRIPT = `${BLOCK_UPLOADS_SCRIPT}\n${MEDIA_SHORTCUTS_SCRIPT}`;
 
-// Toggles Picture-in-Picture on the most prominent <video> on the page. Runs with a
-// synthetic user gesture since requestPictureInPicture() requires one.
+// Toggles Picture-in-Picture on the most prominent <video> on the page.
 const PIP_SCRIPT = `(() => {
   if (document.pictureInPictureElement) {
     document.exitPictureInPicture().catch(() => {});
@@ -179,37 +179,84 @@ function layout() {
 
   if (active.fullscreen) {
     active.view.setBounds({ x: 0, y: 0, width, height });
-  } else {
-    if (toolbarView) toolbarView.setBounds({ x: 0, y: 0, width, height: TOOLBAR_HEIGHT });
-    active.view.setBounds({ x: 0, y: TOOLBAR_HEIGHT, width, height: Math.max(0, height - TOOLBAR_HEIGHT) });
+    if (brainView) brainView.setVisible(false);
+    return;
   }
+  if (brainView) brainView.setVisible(brainVisible);
+
+  if (toolbarView) toolbarView.setBounds({ x: 0, y: 0, width, height: TOOLBAR_HEIGHT });
+  let contentTop = TOOLBAR_HEIGHT;
+  if (findBarVisible && findBarView) {
+    findBarView.setBounds({ x: 0, y: TOOLBAR_HEIGHT, width, height: FIND_BAR_HEIGHT });
+    contentTop += FIND_BAR_HEIGHT;
+  }
+  const brainW = brainVisible ? Math.min(BRAIN_WIDTH, Math.max(240, Math.floor(width * 0.5))) : 0;
+  const contentW = Math.max(0, width - brainW);
+  active.view.setBounds({ x: 0, y: contentTop, width: contentW, height: Math.max(0, height - contentTop) });
+  if (brainVisible && brainView) {
+    brainView.setBounds({ x: contentW, y: TOOLBAR_HEIGHT, width: brainW, height: Math.max(0, height - TOOLBAR_HEIGHT) });
+  }
+}
+
+function isBookmarked(url) {
+  if (!url || url.startsWith('file://')) return false;
+  const bookmarks = store.get('bookmarks') || [];
+  return bookmarks.some((b) => b.url === url);
 }
 
 function sendTabsUpdate() {
   if (!toolbarView) return;
-  toolbarView.webContents.send('tabs-updated', {
-    tabs: tabs.map((t) => ({ id: t.id, title: t.title, url: t.url, loading: t.loading })),
-    activeTabId,
-  });
   const active = tabs.find((t) => t.id === activeTabId);
-  if (mainWindow) mainWindow.setTitle(active && active.title ? `${active.title} — Airlock` : 'Airlock');
+  toolbarView.webContents.send('tabs-updated', {
+    tabs: tabs.map((t) => ({
+      id: t.id, title: t.title, url: t.url, loading: t.loading,
+      audible: t.audible, muted: t.muted,
+    })),
+    activeTabId,
+    bookmarked: active ? isBookmarked(active.url) : false,
+    searchEngine: currentEngineId(),
+  });
+  if (mainWindow) mainWindow.setTitle(active && active.title ? `${active.title} — Hush` : 'Hush');
+}
+
+function activeTab() {
+  return tabs.find((t) => t.id === activeTabId) || null;
 }
 
 function activeWebContents() {
-  const tab = tabs.find((t) => t.id === activeTabId);
+  const tab = activeTab();
   return tab ? tab.view.webContents : null;
 }
 
+function recordHistory(url, title) {
+  if (!url || url.startsWith('file://') || url.startsWith('about:')) return;
+  store.update('history', (list) => {
+    const entries = list || [];
+    const existingIdx = entries.findIndex((h) => h.url === url);
+    if (existingIdx !== -1) entries.splice(existingIdx, 1);
+    entries.unshift({ url, title: title || displayHost(url), ts: Date.now() });
+    if (entries.length > HISTORY_LIMIT) entries.length = HISTORY_LIMIT;
+    return entries;
+  });
+}
+
 function createTab(url) {
+  // Internal file:// pages (new tab, bookmarks, history) get Hush's own narrow preload
+  // instead of the adblocker preload, so they can read local state without exposing
+  // anything to remote sites.
+  const isInternal = typeof url === 'string' && url.startsWith('file://');
+  const preload = isInternal
+    ? path.join(__dirname, 'internal-preload.js')
+    : require.resolve('@ghostery/adblocker-electron-preload');
   const view = new WebContentsView({
     webPreferences: {
-      preload: require.resolve('@ghostery/adblocker-electron-preload'),
+      preload,
       contextIsolation: true,
     },
   });
 
   const id = nextTabId++;
-  const tab = { id, view, title: 'New Tab', url: url || NEW_TAB_URL, loading: true, fullscreen: false };
+  const tab = { id, view, title: 'New Tab', url: url || NEW_TAB_URL, loading: true, fullscreen: false, zoom: 0, audible: false, muted: false };
   tabs.push(tab);
 
   const wc = view.webContents;
@@ -222,6 +269,10 @@ function createTab(url) {
     if (params.linkURL) {
       template.push({ label: 'Open Link in New Tab', click: () => createTab(params.linkURL) });
       template.push({ label: 'Copy Link Address', click: () => clipboard.writeText(params.linkURL) });
+      template.push({ type: 'separator' });
+    }
+    if (params.selectionText) {
+      template.push({ label: 'Copy', click: () => clipboard.writeText(params.selectionText) });
       template.push({ type: 'separator' });
     }
     template.push({ label: 'Reload', click: () => wc.reload() });
@@ -240,10 +291,12 @@ function createTab(url) {
   wc.on('page-title-updated', (_e, title) => {
     tab.title = title;
     sendTabsUpdate();
+    recordHistory(tab.url, title);
   });
   wc.on('did-navigate', (_e, navUrl) => {
     tab.url = navUrl;
     sendTabsUpdate();
+    recordHistory(navUrl, tab.title);
   });
   wc.on('did-navigate-in-page', (_e, navUrl) => {
     tab.url = navUrl;
@@ -251,13 +304,24 @@ function createTab(url) {
   });
   wc.on('dom-ready', () => {
     wc.executeJavaScript(PAGE_ENHANCEMENTS_SCRIPT).catch(() => {});
+    wc.setZoomLevel(tab.zoom);
+  });
+  wc.on('audio-state-changed', (event) => {
+    tab.audible = !!event.audible;
+    sendTabsUpdate();
+  });
+  wc.on('found-in-page', (_e, result) => {
+    if (!findBarView) return;
+    findBarView.webContents.send('find:result', {
+      current: result.activeMatchOrdinal,
+      total: result.matches,
+    });
   });
 
-  // Video sites manage "fullscreen" via the HTML Fullscreen API, which by default only
-  // fills our sub-view (below the toolbar). Take it over so the tab covers the whole window.
   wc.on('enter-html-full-screen', () => {
     tab.fullscreen = true;
     hideToolbar();
+    hideFindBar();
     layout();
   });
   wc.on('leave-html-full-screen', () => {
@@ -276,9 +340,11 @@ function createTab(url) {
 function switchTab(id) {
   if (!tabs.some((t) => t.id === id)) return;
   activeTabId = id;
-  for (const t of tabs) {
-    if (t.id !== id) t.view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
-  }
+  hideFindBar();
+  // Use setVisible, not zero bounds. Zero-size views still participate in
+  // compositing: on inactive PiP-source tabs, we were seeing the page bleed
+  // through under the active tab after a switch.
+  for (const t of tabs) t.view.setVisible(t.id === id);
   layout();
   sendTabsUpdate();
 }
@@ -303,13 +369,137 @@ function closeTab(id) {
   }
 }
 
+function reorderTab(fromId, toId) {
+  const fromIdx = tabs.findIndex((t) => t.id === fromId);
+  const toIdx = tabs.findIndex((t) => t.id === toId);
+  if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+  const [moved] = tabs.splice(fromIdx, 1);
+  tabs.splice(toIdx, 0, moved);
+  sendTabsUpdate();
+}
+
+function cycleTab(dir) {
+  if (tabs.length < 2) return;
+  const idx = tabs.findIndex((t) => t.id === activeTabId);
+  if (idx === -1) return;
+  const next = tabs[(idx + dir + tabs.length) % tabs.length];
+  switchTab(next.id);
+}
+
+function setZoom(delta) {
+  const tab = activeTab();
+  if (!tab) return;
+  if (delta === 0) tab.zoom = 0;
+  else tab.zoom = Math.max(-3, Math.min(5, tab.zoom + delta));
+  tab.view.webContents.setZoomLevel(tab.zoom);
+}
+
+function toggleBookmark() {
+  const tab = activeTab();
+  if (!tab || !tab.url || tab.url.startsWith('file://')) return;
+  store.update('bookmarks', (list) => {
+    const bookmarks = list || [];
+    const idx = bookmarks.findIndex((b) => b.url === tab.url);
+    if (idx !== -1) bookmarks.splice(idx, 1);
+    else bookmarks.unshift({ url: tab.url, title: tab.title || displayHost(tab.url), ts: Date.now() });
+    return bookmarks;
+  });
+  sendTabsUpdate();
+}
+
+function showFindBar() {
+  const tab = activeTab();
+  if (!tab || tab.fullscreen || !mainWindow) return;
+  if (!findBarView) {
+    findBarView = new WebContentsView({
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+      },
+    });
+    findBarView.webContents.loadFile(path.join(__dirname, 'ui', 'find.html'));
+  }
+  if (!findBarVisible) {
+    mainWindow.contentView.addChildView(findBarView);
+    findBarVisible = true;
+  }
+  layout();
+  findBarView.webContents.focus();
+  findBarView.webContents.send('find:focus');
+}
+
+function hideFindBar() {
+  if (findBarVisible && findBarView && mainWindow) {
+    mainWindow.contentView.removeChildView(findBarView);
+    findBarVisible = false;
+    const wc = activeWebContents();
+    if (wc) wc.stopFindInPage('clearSelection');
+    layout();
+  }
+}
+
+function toggleBrain() {
+  if (!mainWindow) return;
+  if (brainVisible) {
+    if (brainView) mainWindow.contentView.removeChildView(brainView);
+    brainVisible = false;
+  } else {
+    if (!brainView) {
+      brainView = new WebContentsView({
+        webPreferences: {
+          preload: path.join(__dirname, 'ui', 'brain-preload.js'),
+          contextIsolation: true,
+          // WebGPU + inference run inside this view; everything stays local.
+          sandbox: false,
+        },
+      });
+      brainView.webContents.loadFile(path.join(__dirname, 'ui', 'brain.html'));
+      // Links the model might include in its answers open in the active tab,
+      // never in the brain panel itself.
+      brainView.webContents.setWindowOpenHandler(({ url }) => {
+        createTab(url);
+        return { action: 'deny' };
+      });
+    }
+    mainWindow.contentView.addChildView(brainView);
+    brainVisible = true;
+  }
+  if (toolbarView) toolbarView.webContents.send('brain:state', brainVisible);
+  layout();
+}
+
 function registerIpcHandlers() {
-  ipcMain.on('nav:new-tab', () => createTab(NEW_TAB_URL));
+  ipcMain.on('nav:new-tab', (_e, url) => createTab(url || NEW_TAB_URL));
   ipcMain.on('nav:close-tab', (_e, id) => closeTab(id));
   ipcMain.on('nav:switch-tab', (_e, id) => switchTab(id));
+  ipcMain.on('nav:reorder-tab', (_e, { fromId, toId }) => reorderTab(fromId, toId));
   ipcMain.on('nav:navigate', (_e, input) => {
     const wc = activeWebContents();
-    if (wc) wc.loadURL(normalizeUrl(input));
+    if (wc) wc.loadURL(normalizeUrl(input, NEW_TAB_URL, currentEngineId()));
+  });
+  ipcMain.handle('search-engine:list', () => SEARCH_ENGINES);
+  ipcMain.handle('search-engine:get', () => currentEngineId());
+  ipcMain.on('search-engine:set', (_e, id) => {
+    const picked = getEngine(id);
+    store.set('searchEngine', picked.id);
+    sendTabsUpdate();
+  });
+  ipcMain.on('search-engine:show-menu', (_e, rect) => {
+    if (!mainWindow) return;
+    const activeId = currentEngineId();
+    const template = SEARCH_ENGINES.map((eng) => ({
+      label: `${eng.name}  (${eng.short})`,
+      type: 'checkbox',
+      checked: eng.id === activeId,
+      click: () => {
+        store.set('searchEngine', eng.id);
+        sendTabsUpdate();
+      },
+    }));
+    const menu = Menu.buildFromTemplate(template);
+    const x = rect && Number.isFinite(rect.x) ? Math.round(rect.x) : undefined;
+    const y = rect && Number.isFinite(rect.y) ? Math.round(rect.y) : undefined;
+    menu.popup({ window: mainWindow, ...(x != null ? { x, y } : {}) });
   });
   ipcMain.on('nav:back', () => {
     const wc = activeWebContents();
@@ -324,15 +514,146 @@ function registerIpcHandlers() {
   ipcMain.on('nav:pip', () => {
     activeWebContents()?.executeJavaScript(PIP_SCRIPT, true).catch(() => {});
   });
+  ipcMain.on('tab:toggle-mute', (_e, id) => {
+    const tab = tabs.find((t) => t.id === id);
+    if (!tab) return;
+    tab.muted = !tab.muted;
+    tab.view.webContents.setAudioMuted(tab.muted);
+    sendTabsUpdate();
+  });
+
+  ipcMain.on('bookmark:toggle', toggleBookmark);
+  ipcMain.handle('bookmark:list', () => store.get('bookmarks') || []);
+  ipcMain.on('bookmark:remove', (_e, url) => {
+    store.update('bookmarks', (list) => (list || []).filter((b) => b.url !== url));
+    sendTabsUpdate();
+  });
+
+  ipcMain.handle('history:list', () => store.get('history') || []);
+  ipcMain.on('history:clear', () => {
+    store.set('history', []);
+  });
+
+  ipcMain.on('find:query', (_e, { text, forward }) => {
+    const wc = activeWebContents();
+    if (!wc) return;
+    if (!text) {
+      wc.stopFindInPage('clearSelection');
+      return;
+    }
+    wc.findInPage(text, { forward: forward !== false, findNext: false });
+  });
+  ipcMain.on('find:next', (_e, text) => {
+    const wc = activeWebContents();
+    if (wc && text) wc.findInPage(text, { forward: true, findNext: true });
+  });
+  ipcMain.on('find:prev', (_e, text) => {
+    const wc = activeWebContents();
+    if (wc && text) wc.findInPage(text, { forward: false, findNext: true });
+  });
+  ipcMain.on('find:close', hideFindBar);
+  ipcMain.on('brain:toggle', toggleBrain);
+
+  ipcMain.on('zoom:in', () => setZoom(0.5));
+  ipcMain.on('zoom:out', () => setZoom(-0.5));
+  ipcMain.on('zoom:reset', () => setZoom(0));
+}
+
+function buildMenu() {
+  const isMac = process.platform === 'darwin';
+  const mod = isMac ? 'Cmd' : 'Ctrl';
+  const template = [
+    ...(isMac ? [{ role: 'appMenu' }] : []),
+    {
+      label: 'File',
+      submenu: [
+        { label: 'New Tab', accelerator: `${mod}+T`, click: () => createTab(NEW_TAB_URL) },
+        { label: 'Close Tab', accelerator: `${mod}+W`, click: () => activeTabId != null && closeTab(activeTabId) },
+        { type: 'separator' },
+        isMac ? { role: 'close' } : { role: 'quit' },
+      ],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+        { type: 'separator' },
+        { label: 'Find on Page', accelerator: `${mod}+F`, click: showFindBar },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { label: 'Reload', accelerator: `${mod}+R`, click: () => activeWebContents()?.reload() },
+        { label: 'Stop', accelerator: 'Esc', click: () => activeWebContents()?.stop() },
+        { type: 'separator' },
+        { label: 'Zoom In', accelerator: `${mod}+=`, click: () => setZoom(0.5) },
+        { label: 'Zoom Out', accelerator: `${mod}+-`, click: () => setZoom(-0.5) },
+        { label: 'Actual Size', accelerator: `${mod}+0`, click: () => setZoom(0) },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'History',
+      submenu: [
+        { label: 'Back', accelerator: `${mod}+[`, click: () => { const wc = activeWebContents(); if (wc && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack(); } },
+        { label: 'Forward', accelerator: `${mod}+]`, click: () => { const wc = activeWebContents(); if (wc && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward(); } },
+        { type: 'separator' },
+        { label: 'Show History', accelerator: `${mod}+Y`, click: () => createTab(`file://${path.join(__dirname, 'ui', 'history.html')}`) },
+      ],
+    },
+    {
+      label: 'Bookmarks',
+      submenu: [
+        { label: 'Bookmark This Page', accelerator: `${mod}+D`, click: toggleBookmark },
+        { label: 'Show Bookmarks', accelerator: `${mod}+Shift+B`, click: () => createTab(`file://${path.join(__dirname, 'ui', 'bookmarks.html')}`) },
+      ],
+    },
+    {
+      label: 'Tab',
+      submenu: [
+        { label: 'Focus Address Bar', accelerator: `${mod}+L`, click: () => toolbarView?.webContents.send('toolbar:focus-address') },
+        { label: 'Next Tab', accelerator: `${mod}+Alt+Right`, click: () => cycleTab(1) },
+        { label: 'Previous Tab', accelerator: `${mod}+Alt+Left`, click: () => cycleTab(-1) },
+      ],
+    },
+    {
+      label: 'Tools',
+      submenu: [
+        { label: 'Toggle Brain Panel', accelerator: `${mod}+Shift+L`, click: toggleBrain },
+      ],
+    },
+    { role: 'windowMenu' },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'Hush on GitHub',
+          click: () => require('electron').shell.openExternal('https://github.com/vishalmaheshkumar/hush'),
+        },
+      ],
+    },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 function createMainWindow() {
+  const iconPath = path.join(__dirname, 'ui', 'assets', 'icon.png');
+  const icon = fs.existsSync(iconPath) ? nativeImage.createFromPath(iconPath) : undefined;
   mainWindow = new BaseWindow({
     width: 1280,
     height: 860,
     minWidth: 640,
     minHeight: 420,
-    title: 'Airlock',
+    title: 'Hush',
+    icon,
   });
 
   toolbarView = new WebContentsView({
@@ -350,6 +671,10 @@ function createMainWindow() {
     mainWindow = null;
     toolbarView = null;
     toolbarAttached = false;
+    findBarView = null;
+    findBarVisible = false;
+    brainView = null;
+    brainVisible = false;
     tabs = [];
     activeTabId = null;
   });
@@ -359,10 +684,29 @@ function createMainWindow() {
 }
 
 app.whenReady().then(async () => {
+  setupStore();
   await setupAdblocker();
   blockDownloads();
   registerIpcHandlers();
+  buildMenu();
   createMainWindow();
+
+  if (process.env.HUSH_SMOKE === '1') {
+    const active = activeTab();
+    const done = () => {
+      console.log('HUSH_SMOKE_READY');
+      setTimeout(() => app.quit(), 100);
+    };
+    if (active && active.view.webContents.isLoadingMainFrame()) {
+      active.view.webContents.once('did-finish-load', done);
+    } else {
+      done();
+    }
+  }
+});
+
+app.on('before-quit', () => {
+  if (store) store.flush();
 });
 
 app.on('window-all-closed', () => {
@@ -372,3 +716,6 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (!mainWindow) createMainWindow();
 });
+
+// Exported for test visibility; the app runs via `app.whenReady` above.
+module.exports = { normalizeUrl, displayHost };

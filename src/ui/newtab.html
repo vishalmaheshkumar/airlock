@@ -1,39 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>New Tab</title>
+    <title>Hush — New Tab</title>
     <style>
-      html,
+      :root {
+        --bg: #0e1116;
+        --fg: #e8e6df;
+        --fg-muted: #9ea099;
+        --fg-dim: #6a6c66;
+        --accent: #88b19f;
+        --accent-strong: #6b9080;
+        --chip: #171a21;
+        --chip-hover: #20242d;
+        --border: #262a33;
+        --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+        --font-serif: "Iowan Old Style", "Charter", Georgia, serif;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f6f3ec;
+          --fg: #1a1c1a;
+          --fg-muted: #5a5c56;
+          --fg-dim: #8a8c85;
+          --accent: #4a7566;
+          --accent-strong: #335849;
+          --chip: #ffffff;
+          --chip-hover: #ece7da;
+          --border: #ddd6c5;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+        font-family: var(--font); -webkit-font-smoothing: antialiased;
+      }
       body {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 48px 24px; gap: 32px;
+      }
+      .brand {
+        display: flex; flex-direction: column; align-items: center; gap: 10px;
+      }
+      .mark { color: var(--accent); }
+      .mark svg { width: 56px; height: 56px; display: block; }
+      .wordmark {
+        font-family: var(--font-serif);
+        font-size: 42px; font-weight: 400; letter-spacing: 0.01em;
         margin: 0;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #202124;
-        color: #9aa0a6;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
       }
-      .wrap {
-        text-align: center;
+      .tagline {
+        font-size: 13px; color: var(--fg-muted); margin: 0;
+        letter-spacing: 0.02em;
       }
-      h1 {
-        font-size: 22px;
-        font-weight: 600;
-        color: #e8eaed;
-        margin: 0 0 6px;
+      .shields {
+        display: flex; gap: 18px; font-size: 11px; color: var(--fg-dim);
+        text-transform: uppercase; letter-spacing: 0.08em;
       }
-      p {
-        margin: 0;
-        font-size: 13px;
+      .shields span { display: flex; align-items: center; gap: 6px; }
+      .shields .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+      .search {
+        width: min(560px, 90%); position: relative;
+      }
+      .search input {
+        width: 100%; height: 46px; border-radius: 23px;
+        border: 1px solid var(--border); background: var(--chip);
+        color: var(--fg); font-size: 14px; padding: 0 20px 0 46px;
+        outline: none; font-family: var(--font);
+        transition: border-color 120ms ease;
+      }
+      .search input:focus { border-color: var(--accent); }
+      .search::before {
+        content: ""; position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+        width: 16px; height: 16px;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ea099' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+        background-size: contain; background-repeat: no-repeat;
+      }
+      .bookmarks {
+        width: min(720px, 92%);
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+      }
+      .bm {
+        display: flex; flex-direction: column; align-items: center; gap: 6px;
+        padding: 14px 8px 10px; border-radius: 12px;
+        background: var(--chip); border: 1px solid var(--border);
+        cursor: pointer; transition: background 120ms ease, transform 120ms ease;
+        text-decoration: none; color: inherit;
+      }
+      .bm:hover { background: var(--chip-hover); transform: translateY(-1px); }
+      .bm-letter {
+        width: 36px; height: 36px; border-radius: 10px;
+        background: var(--accent); color: #0e1116;
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--font-serif); font-size: 18px; font-weight: 600;
+      }
+      .bm-title {
+        font-size: 11.5px; color: var(--fg); max-width: 100%;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .empty {
+        font-size: 12.5px; color: var(--fg-dim); text-align: center;
+        max-width: 420px; line-height: 1.6;
+      }
+      kbd {
+        font-family: var(--font); font-size: 11px;
+        background: var(--chip); border: 1px solid var(--border);
+        border-radius: 4px; padding: 1px 5px;
+        color: var(--fg-muted);
       }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <h1>Airlock</h1>
-      <p>Ads &amp; trackers blocked · pop-ups blocked &mdash; type an address above to get started</p>
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="4"  y1="7"  x2="4"  y2="17"/>
+          <line x1="8.5" y1="9" x2="8.5" y2="15"/>
+          <line x1="13" y1="11" x2="13" y2="13"/>
+          <line x1="17" y1="12" x2="21" y2="12"/>
+        </svg>
+      </div>
+      <h1 class="wordmark">hush</h1>
+      <p class="tagline">A quieter browser.</p>
+      <div class="shields" aria-label="Protections active">
+        <span><i class="dot"></i>Ads</span>
+        <span><i class="dot"></i>Trackers</span>
+        <span><i class="dot"></i>Pop-ups</span>
+        <span><i class="dot"></i>Downloads</span>
+        <span><i class="dot"></i>Uploads</span>
+      </div>
     </div>
+
+    <form class="search" onsubmit="return go(event)">
+      <input id="q" type="text" placeholder="Search or enter address" autocomplete="off" spellcheck="false" autofocus />
+    </form>
+
+    <div class="bookmarks" id="bookmarks"></div>
+    <p class="empty" id="empty">No bookmarks yet. Press <kbd>⌘D</kbd> on any page to save it here.</p>
+
+    <script src="newtab.js"></script>
   </body>
 </html>
