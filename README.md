@@ -41,6 +41,7 @@ Hush doesn't ship a toggle to turn these off. If you need to upload or download,
 - **Find on page** (⌘F) with match count and prev/next
 - **Zoom** (⌘= / ⌘- / ⌘0), per-tab
 - **Picture-in-picture** on the most prominent `<video>`
+- **Brain** — a local small-language-model chat panel next to the toolbar. Pick a model (10 supported, see below), it downloads once, then runs entirely on your machine via WebGPU — no cloud calls, no API keys, no account
 - **Media shortcuts** for pages with no player of their own: space/`k` to toggle, arrows to seek and change volume. Backs off when a site handles the key itself (so YouTube stays in charge).
 - **Fullscreen takeover** — a video that goes fullscreen covers the whole window, toolbar hidden
 - **Light & dark themes** that follow your system
@@ -60,6 +61,28 @@ Hush doesn't ship a toggle to turn these off. If you need to upload or download,
 | Bookmark page | ⌘D | Ctrl D |
 | Show bookmarks | ⌘⇧B | Ctrl Shift B |
 | Show history | ⌘Y | Ctrl Y |
+| Toggle Brain panel | ⌘⇧L | Ctrl Shift L |
+
+## Brain — local SLMs in-browser
+
+Click the brain button next to **PiP** (or press ⌘⇧L) to open the chat panel. Pick a model from the list, hit **Load** — on first use it downloads the weights from the Hugging Face CDN and caches them in your browser's IndexedDB. Nothing afterwards leaves your machine.
+
+| Model | Size | Good for |
+|---|---|---|
+| SmolLM2 · 135M | ≈100 MB | Pleasant short replies on anything — even a laptop with no GPU |
+| SmolLM2 · 360M | ≈270 MB | Noticeably sharper than 135M, still fast |
+| Qwen 2.5 · 0.5B | ≈380 MB | Strong instruction-following at a tiny size |
+| Llama 3.2 · 1B | ≈800 MB | Meta's small chat model |
+| SmolLM2 · 1.7B | ≈1.1 GB | HuggingFace's upper SmolLM tier |
+| Qwen 2.5 · 1.5B | ≈1.0 GB | Solid general-purpose |
+| Gemma 2 · 2B | ≈1.6 GB | Google's open small chat model |
+| Llama 3.2 · 3B | ≈2.0 GB | Mid-tier, strong Q&A |
+| Qwen 2.5 · 3B | ≈2.0 GB | Strong reasoning at this size |
+| Phi-3.5 Mini · 3.8B | ≈2.4 GB | Microsoft's small-but-mighty reasoning model |
+
+**Requires WebGPU** (Chromium 113+, which Hush's Electron satisfies). Models stay in your profile; `Reset conversation` clears the chat but keeps the loaded weights.
+
+> About the downloads: this is a user-initiated model fetch, not a web page writing to your disk. Pages the browser is loading still can't download anything — those protections are unchanged.
 
 ## Download
 
@@ -97,6 +120,7 @@ src/
   url.js               URL normalization — see tests
   preload.js           Toolbar bridge (narrow API to the main process)
   internal-preload.js  Preload for file:// pages (newtab, bookmarks, history)
+  ui/brain-preload.js  Preload for the Brain panel
   storage/store.js     Debounced JSON key/value store, used for bookmarks + history
   ui/
     index.html         Toolbar + tab strip
@@ -105,6 +129,7 @@ src/
     bookmarks.html     ⌘⇧B page
     history.html       ⌘Y page
     find.html          Find-in-page overlay
+    brain.html / .js / .css   Local-SLM chat panel (loads @mlc-ai/web-llm)
     styles.css         Palette, tabs, toolbar
     internal.css       Palette for internal pages
     assets/            Logo, mark
@@ -133,8 +158,9 @@ Hush aims for the feel of a reading room: ink on the dark side, warm paper on th
 - Extensions / add-ons
 - Account sync
 - Password manager
-- Download or upload "modes"
+- Download or upload "modes" for web pages (Brain's **user-initiated** model fetch is deliberately not covered here — pages themselves still can't write anywhere)
 - Telemetry
+- Cloud-hosted AI calls — Brain only talks to models running on your own machine
 
 ## Contributing
 
