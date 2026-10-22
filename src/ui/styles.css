@@ -323,6 +323,11 @@ body {
   color: var(--accent);
 }
 
+#brain.on {
+  color: var(--accent);
+  background: var(--bg-elev-2);
+}
+
 #address {
   flex: 1;
   height: 32px;

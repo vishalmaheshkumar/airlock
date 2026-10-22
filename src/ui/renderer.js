@@ -6,6 +6,7 @@ const reloadBtn = document.getElementById('reload');
 const newTabBtn = document.getElementById('newtab');
 const pipBtn = document.getElementById('pip');
 const starBtn = document.getElementById('star');
+const brainBtn = document.getElementById('brain');
 
 let draggingTabId = null;
 
@@ -131,4 +132,9 @@ pipBtn.addEventListener('click', () => window.browserAPI.pip());
 starBtn.addEventListener('click', () => {
   if (starBtn.disabled) return;
   window.browserAPI.toggleBookmark();
+});
+brainBtn.addEventListener('click', () => window.browserAPI.toggleBrain());
+
+window.browserAPI.onBrainState?.((open) => {
+  brainBtn.classList.toggle('on', !!open);
 });

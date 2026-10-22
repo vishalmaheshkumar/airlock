@@ -7,6 +7,7 @@ const { createStore } = require('./storage/store');
 
 const TOOLBAR_HEIGHT = 84;
 const FIND_BAR_HEIGHT = 44;
+const BRAIN_WIDTH = 380;
 const NEW_TAB_URL = `file://${path.join(__dirname, 'ui', 'newtab.html')}`;
 const HISTORY_LIMIT = 1000;
 
@@ -15,6 +16,8 @@ let toolbarView = null;
 let toolbarAttached = false;
 let findBarView = null;
 let findBarVisible = false;
+let brainView = null;
+let brainVisible = false;
 let blocker = null;
 let store = null;
 
@@ -171,8 +174,10 @@ function layout() {
 
   if (active.fullscreen) {
     active.view.setBounds({ x: 0, y: 0, width, height });
+    if (brainView) brainView.setVisible(false);
     return;
   }
+  if (brainView) brainView.setVisible(brainVisible);
 
   if (toolbarView) toolbarView.setBounds({ x: 0, y: 0, width, height: TOOLBAR_HEIGHT });
   let contentTop = TOOLBAR_HEIGHT;
@@ -180,7 +185,12 @@ function layout() {
     findBarView.setBounds({ x: 0, y: TOOLBAR_HEIGHT, width, height: FIND_BAR_HEIGHT });
     contentTop += FIND_BAR_HEIGHT;
   }
-  active.view.setBounds({ x: 0, y: contentTop, width, height: Math.max(0, height - contentTop) });
+  const brainW = brainVisible ? Math.min(BRAIN_WIDTH, Math.max(240, Math.floor(width * 0.5))) : 0;
+  const contentW = Math.max(0, width - brainW);
+  active.view.setBounds({ x: 0, y: contentTop, width: contentW, height: Math.max(0, height - contentTop) });
+  if (brainVisible && brainView) {
+    brainView.setBounds({ x: contentW, y: TOOLBAR_HEIGHT, width: brainW, height: Math.max(0, height - TOOLBAR_HEIGHT) });
+  }
 }
 
 function isBookmarked(url) {
@@ -422,6 +432,36 @@ function hideFindBar() {
   }
 }
 
+function toggleBrain() {
+  if (!mainWindow) return;
+  if (brainVisible) {
+    if (brainView) mainWindow.contentView.removeChildView(brainView);
+    brainVisible = false;
+  } else {
+    if (!brainView) {
+      brainView = new WebContentsView({
+        webPreferences: {
+          preload: path.join(__dirname, 'ui', 'brain-preload.js'),
+          contextIsolation: true,
+          // WebGPU + inference run inside this view; everything stays local.
+          sandbox: false,
+        },
+      });
+      brainView.webContents.loadFile(path.join(__dirname, 'ui', 'brain.html'));
+      // Links the model might include in its answers open in the active tab,
+      // never in the brain panel itself.
+      brainView.webContents.setWindowOpenHandler(({ url }) => {
+        createTab(url);
+        return { action: 'deny' };
+      });
+    }
+    mainWindow.contentView.addChildView(brainView);
+    brainVisible = true;
+  }
+  if (toolbarView) toolbarView.webContents.send('brain:state', brainVisible);
+  layout();
+}
+
 function registerIpcHandlers() {
   ipcMain.on('nav:new-tab', (_e, url) => createTab(url || NEW_TAB_URL));
   ipcMain.on('nav:close-tab', (_e, id) => closeTab(id));
@@ -482,6 +522,7 @@ function registerIpcHandlers() {
     if (wc && text) wc.findInPage(text, { forward: false, findNext: true });
   });
   ipcMain.on('find:close', hideFindBar);
+  ipcMain.on('brain:toggle', toggleBrain);
 
   ipcMain.on('zoom:in', () => setZoom(0.5));
   ipcMain.on('zoom:out', () => setZoom(-0.5));
@@ -553,6 +594,12 @@ function buildMenu() {
         { label: 'Previous Tab', accelerator: `${mod}+Alt+Left`, click: () => cycleTab(-1) },
       ],
     },
+    {
+      label: 'Tools',
+      submenu: [
+        { label: 'Toggle Brain Panel', accelerator: `${mod}+Shift+L`, click: toggleBrain },
+      ],
+    },
     { role: 'windowMenu' },
     {
       label: 'Help',
@@ -596,6 +643,8 @@ function createMainWindow() {
     toolbarAttached = false;
     findBarView = null;
     findBarVisible = false;
+    brainView = null;
+    brainVisible = false;
     tabs = [];
     activeTabId = null;
   });

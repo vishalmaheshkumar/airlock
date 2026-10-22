@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('browserAPI', {
   stop: () => ipcRenderer.send('nav:stop'),
   pip: () => ipcRenderer.send('nav:pip'),
   toggleMute: (id) => ipcRenderer.send('tab:toggle-mute', id),
+  toggleBrain: () => ipcRenderer.send('brain:toggle'),
+  onBrainState: (cb) => ipcRenderer.on('brain:state', (_e, open) => cb(open)),
 
   toggleBookmark: () => ipcRenderer.send('bookmark:toggle'),
   listBookmarks: () => ipcRenderer.invoke('bookmark:list'),
