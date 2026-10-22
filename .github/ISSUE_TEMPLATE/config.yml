@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security issue
+    url: https://github.com/vishalmaheshkumar/hush/security/advisories/new
+    about: Report a way for a page to download, upload, or open a window — privately.

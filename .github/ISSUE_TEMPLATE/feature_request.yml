@@ -1,0 +1,27 @@
+name: Feature idea
+description: Suggest something small. Hush stays small.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before you file this — please scan [Non-goals](../../README.md#non-goals). Hush deliberately omits a lot of things most browsers have. If your idea is one of those, we probably won't take it, but we'd still like to hear what you were trying to do.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the problem?
+      description: What are you trying to do that Hush doesn't let you?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What's your proposal?
+      description: One sentence is fine. "A button that…" or "I want ⌘X to…".
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+      description: Keyboard shortcut, external tool, different browser for this one task, etc.

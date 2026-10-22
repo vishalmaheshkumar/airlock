@@ -1,0 +1,57 @@
+name: Bug report
+description: Something isn't working as described in the README.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. If this is a security issue (a page downloaded something, uploaded something, or opened a popup), please read [SECURITY.md](../../SECURITY.md) first and report privately.
+  - type: input
+    id: hush-version
+    attributes:
+      label: Hush version
+      description: Found in `package.json` under `version`.
+      placeholder: "0.2.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options: [macOS, Linux, Windows]
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      placeholder: "20.11.1"
+    validations:
+      required: true
+  - type: input
+    id: site
+    attributes:
+      label: Page or site that reproduces this
+      placeholder: "https://example.com"
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Hush
+        2. Navigate to …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened?
+    validations:
+      required: true

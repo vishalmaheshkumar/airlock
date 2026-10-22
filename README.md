@@ -1,34 +1,132 @@
-# Airlock
+<div align="center">
 
-**Nothing gets in, nothing gets out.** A sealed, privacy-focused desktop browser built with Electron.
+<img src="src/ui/assets/mark.svg" width="72" height="72" alt="Hush" />
+
+# hush
+
+**A quieter browser.** Hush seals pages off from the rest of the web — and from your machine. Ads, trackers, pop-ups, downloads and uploads are blocked. There is no telemetry, no account, no sync, no "experiments" page. Just a window.
+
+[![CI](https://github.com/vishalmaheshkumar/hush/actions/workflows/ci.yml/badge.svg)](https://github.com/vishalmaheshkumar/hush/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-6b9080.svg)](LICENSE)
+[![Electron](https://img.shields.io/badge/electron-44-6b9080.svg)](https://www.electronjs.org/)
+[![Node ≥ 20](https://img.shields.io/badge/node-%E2%89%A520-6b9080.svg)](https://nodejs.org/)
+![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-6b9080.svg)
+
+</div>
+
+---
+
+## Why
+
+Browsers have gotten loud. Hush is for the times you want a window that just renders a page — not a platform that negotiates with the page, downloads things on its behalf, prompts you to sign in, or quietly carries work out of the window and into your filesystem. Reading mode for the whole browser.
+
+## What's blocked, by default
+
+| | What it does |
+|---|---|
+| **Ads & trackers** | Prebuilt Ghostery lists, cached locally after first launch |
+| **Pop-ups & new windows** | `window.open`, `target="_blank"`, popunders — all denied |
+| **Downloads** | Every `will-download` is cancelled before a byte hits disk |
+| **File uploads** | File pickers, drag-drop, `showOpenFilePicker`, hidden `<input type="file">` — all neutralized on every page |
+
+Hush doesn't ship a toggle to turn these off. If you need to upload or download, use a different browser — that is the point.
 
 ## Features
 
-- **Ad and tracker blocking** using [Ghostery's adblocker](https://github.com/ghostery/adblocker) (prebuilt ads + tracking lists, cached locally after first launch)
-- **Pop-ups blocked**: pages can't open new windows
-- **Downloads blocked**: no website can save files to disk
-- **File uploads blocked**: file pickers are neutralized on every page
-- Tabs, back/forward, reload, address bar and a custom new-tab page
-- Context menu: open link in new tab, copy link address, reload, back
-- Picture-in-picture button for videos
+- **Tabs** with drag-to-reorder, loading spinner, favicon letter
+- **Address bar** that routes URLs to the site and plain text to DuckDuckGo
+- **Bookmarks** (⌘D) — appear on the new-tab page
+- **History** (⌘Y) — a quiet list, local-only, 1000 most-recent entries
+- **Find on page** (⌘F) with match count and prev/next
+- **Zoom** (⌘= / ⌘- / ⌘0), per-tab
+- **Picture-in-picture** on the most prominent `<video>`
+- **Media shortcuts** for pages with no player of their own: space/`k` to toggle, arrows to seek and change volume. Backs off when a site handles the key itself (so YouTube stays in charge).
+- **Fullscreen takeover** — a video that goes fullscreen covers the whole window, toolbar hidden
+- **Light & dark themes** that follow your system
 
-## Run
+## Keyboard shortcuts
 
-Requires Node.js.
+| Action | macOS | Windows / Linux |
+|---|---|---|
+| New tab | ⌘T | Ctrl T |
+| Close tab | ⌘W | Ctrl W |
+| Focus address bar | ⌘L | Ctrl L |
+| Reload | ⌘R | Ctrl R |
+| Back / Forward | ⌘[ / ⌘] | Ctrl [ / Ctrl ] |
+| Next / Previous tab | ⌘⌥→ / ⌘⌥← | Ctrl Alt → / ← |
+| Find on page | ⌘F | Ctrl F |
+| Zoom in / out / reset | ⌘= / ⌘- / ⌘0 | Ctrl = / Ctrl - / Ctrl 0 |
+| Bookmark page | ⌘D | Ctrl D |
+| Show bookmarks | ⌘⇧B | Ctrl Shift B |
+| Show history | ⌘Y | Ctrl Y |
+
+## Install & run
+
+Requires **Node.js ≥ 20**.
 
 ```bash
+git clone https://github.com/vishalmaheshkumar/hush.git
+cd hush
 npm install
 npm start
 ```
 
-## Structure
+The first launch downloads the adblocker filter lists; after that it reads from a cached binary in your Electron user-data directory. Nothing is sent anywhere.
+
+## Project layout
 
 ```
 src/
-  main.js       Main process: window, tabs, blocking, IPC
-  preload.js    Bridge between the UI and the main process
-  ui/           Toolbar, tab strip and new-tab page
+  main.js              Electron main process: window, tabs, blocking, IPC, menu
+  url.js               URL normalization — see tests
+  preload.js           Toolbar bridge (narrow API to the main process)
+  internal-preload.js  Preload for file:// pages (newtab, bookmarks, history)
+  storage/store.js     Debounced JSON key/value store, used for bookmarks + history
+  ui/
+    index.html         Toolbar + tab strip
+    renderer.js        Toolbar renderer
+    newtab.html        New tab page (bookmarks grid + search)
+    bookmarks.html     ⌘⇧B page
+    history.html       ⌘Y page
+    find.html          Find-in-page overlay
+    styles.css         Palette, tabs, toolbar
+    internal.css       Palette for internal pages
+    assets/            Logo, mark
+test/
+  url.test.js          Unit tests
+  store.test.js        Unit tests
+  smoke.js             Launches Electron, waits for ready marker, quits
+.github/workflows/     CI (unit on 3 OSes × 2 node versions, smoke under xvfb)
 ```
+
+## Testing
+
+```bash
+npm test       # unit tests (fast, no Electron)
+npm run smoke  # launches Electron and waits for ready marker; needs a display or xvfb on Linux
+```
+
+CI runs the unit tests on Linux + macOS + Windows across Node 20 and 22, and the smoke test on Linux under xvfb — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
+
+## Design
+
+Hush aims for the feel of a reading room: ink on the dark side, warm paper on the light. Sage `#6b9080` is the single accent — it marks what's active and what's bookmarked, and nothing else. Headings use a transitional serif (Iowan / Charter / Georgia) to break the usual tech-UI feel; the rest is a plain system sans. The mark is four vertical bars that step down into a flat line — sound dropping to silence.
+
+## Non-goals
+
+- Extensions / add-ons
+- Account sync
+- Password manager
+- Download or upload "modes"
+- Telemetry
+
+## Contributing
+
+Issues and small PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Please run `npm test` before pushing.
+
+## Security
+
+If you find a way for a page to leak a file in or out of Hush, please read [SECURITY.md](SECURITY.md) before filing a public issue.
 
 ## License
 
